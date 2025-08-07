@@ -99,14 +99,16 @@ export interface PortfolioRiskMetrics {
 
 export interface ATRResponse {
   symbol: string;
-  atr20Day: number;
-  volatilityScore: number;
-  suggestedStopLoss: number;
-  suggestedTakeProfit: number;
-  distanceToStopPercent: number;
+  currentPrice: number;
+  atr: number;
+  period: number;
+  stopLoss: number;
+  takeProfit: number;
   riskRewardRatio: number;
-  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
-  warnings: string[];
+  volatilityPercentile: number;
+  volatilityPercent: number;
+  dataPoints: number;
+  calculatedAt: string;
 }
 
 export interface IBKRStatusResponse {

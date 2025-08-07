@@ -1,14 +1,14 @@
 <template>
   <Dialog
-    v-model:visible="visible"
-    :header="`${position?.symbol} Position Details`"
+    v-model:visible="modalStore.isPositionModalVisible"
+    :header="`${selectedPosition?.symbol} Position Details`"
     modal
     :style="{ width: '80vw', maxWidth: '1200px' }"
     :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
     :dismissableMask="true"
     :closeOnEscape="true"
   >
-    <div v-if="position" class="position-detail-content">
+    <div v-if="selectedPosition" class="position-detail-content">
       <TabView>
         <!-- Basic Position Info -->
         <TabPanel header="Position Info">
@@ -17,15 +17,15 @@
               <Card>
                 <template #title>
                   <div class="flex align-items-center gap-2">
-                    <span>{{ position.symbol }}</span>
+                    <span>{{ selectedPosition.symbol }}</span>
                     <Tag
-                      v-if="position.exchange"
-                      :value="position.exchange"
+                      v-if="selectedPosition.exchange"
+                      :value="selectedPosition.exchange"
                       severity="secondary"
                       size="small"
                     />
                     <Tag
-                      :value="position.instrumentType"
+                      :value="selectedPosition.instrumentType"
                       severity="info"
                       size="small"
                     />
@@ -35,27 +35,27 @@
                   <div class="field-grid">
                     <div class="field">
                       <label>Broker Type</label>
-                      <div class="font-semibold">{{ position.brokerType }}</div>
+                      <div class="font-semibold">{{ selectedPosition.brokerType }}</div>
                     </div>
                     <div class="field">
                       <label>Quantity</label>
-                      <div class="font-semibold">{{ position.quantity.toLocaleString() }}</div>
+                      <div class="font-semibold">{{ selectedPosition.quantity.toLocaleString() }}</div>
                     </div>
                     <div class="field">
                       <label>Current Price</label>
-                      <div class="font-semibold">{{ formatCurrency(position.currentPrice, position.currency) }}</div>
+                      <div class="font-semibold">{{ formatCurrency(selectedPosition.currentPrice, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
                       <label>Average Cost</label>
-                      <div class="font-semibold">{{ formatCurrency(position.avgCost, position.currency) }}</div>
+                      <div class="font-semibold">{{ formatCurrency(selectedPosition.avgCost, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
                       <label>Market Value</label>
-                      <div class="font-semibold">{{ formatCurrency(position.marketValue, position.currency) }}</div>
+                      <div class="font-semibold">{{ formatCurrency(selectedPosition.marketValue, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
                       <label>Currency</label>
-                      <div class="font-semibold">{{ position.currency }}</div>
+                      <div class="font-semibold">{{ selectedPosition.currency }}</div>
                     </div>
                   </div>
                 </template>
@@ -69,28 +69,28 @@
                   <div class="field-grid">
                     <div class="field">
                       <label>Unrealized P&L</label>
-                      <div :class="getPnLClass(position.unrealizedPnl)" class="font-semibold">
-                        {{ formatCurrency(position.unrealizedPnl, position.currency) }}
+                      <div :class="getPnLClass(selectedPosition.unrealizedPnl)" class="font-semibold">
+                        {{ formatCurrency(selectedPosition.unrealizedPnl, selectedPosition.currency) }}
                         <small class="block">
-                          ({{ position.unrealizedPnlPercent.toFixed(2) }}%)
+                          ({{ selectedPosition.unrealizedPnlPercent.toFixed(2) }}%)
                         </small>
                       </div>
                     </div>
                     <div class="field">
                       <label>Position Size (Portfolio %)</label>
-                      <div class="font-semibold">{{ position.positionSizePercent.toFixed(2) }}%</div>
+                      <div class="font-semibold">{{ selectedPosition.positionSizePercent.toFixed(2) }}%</div>
                     </div>
                     <div class="field">
                       <label>Base Currency Value</label>
-                      <div class="font-semibold">{{ formatCurrency(position.baseCurrencyValue, 'EUR') }}</div>
+                      <div class="font-semibold">{{ formatCurrency(selectedPosition.baseCurrencyValue, 'EUR') }}</div>
                     </div>
                     <div class="field">
                       <label>FX Rate</label>
-                      <div class="font-semibold">{{ position.fxRate.toFixed(4) }}</div>
+                      <div class="font-semibold">{{ selectedPosition.fxRate.toFixed(4) }}</div>
                     </div>
-                    <div class="field" v-if="position.beta">
+                    <div class="field" v-if="selectedPosition.beta">
                       <label>Beta</label>
-                      <div class="font-semibold">{{ position.beta.toFixed(2) }}</div>
+                      <div class="font-semibold">{{ selectedPosition.beta.toFixed(2) }}</div>
                     </div>
                   </div>
                 </template>
@@ -111,32 +111,32 @@
                       <label>Risk Score</label>
                       <div class="flex align-items-center gap-2">
                         <ProgressBar
-                          :value="position.positionRiskScore"
-                          :class="getRiskClass(position.positionRiskScore)"
+                          :value="selectedPosition.positionRiskScore"
+                          :class="getRiskClass(selectedPosition.positionRiskScore)"
                           class="w-8rem"
                           :showValue="false"
                         />
-                        <span class="font-semibold">{{ position.positionRiskScore.toFixed(1) }}</span>
+                        <span class="font-semibold">{{ selectedPosition.positionRiskScore.toFixed(1) }}</span>
                       </div>
                     </div>
                     <div class="field">
                       <label>Volatility Score</label>
-                      <div class="font-semibold">{{ position.volatilityScore.toFixed(1) }}</div>
+                      <div class="font-semibold">{{ selectedPosition.volatilityScore.toFixed(1) }}</div>
                     </div>
                     <div class="field">
                       <label>Risk Calculation Confidence</label>
                       <Tag
-                        :value="position.riskCalculationConfidence"
-                        :severity="getConfidenceSeverity(position.riskCalculationConfidence)"
+                        :value="selectedPosition.riskCalculationConfidence"
+                        :severity="getConfidenceSeverity(selectedPosition.riskCalculationConfidence)"
                       />
                     </div>
-                    <div class="field" v-if="position.atr20Day">
-                      <label>ATR (20-day)</label>
-                      <div class="font-semibold">{{ formatCurrency(position.atr20Day, position.currency) }}</div>
+                    <div class="field" v-if="selectedPosition.atr20Day">
+                      <label>ATR</label>
+                      <div class="font-semibold">{{ formatCurrency(selectedPosition.atr20Day, selectedPosition.currency) }}</div>
                     </div>
-                    <div class="field" v-if="position.distanceToStopPercent">
+                    <div class="field" v-if="selectedPosition.distanceToStopPercent">
                       <label>Distance to Stop %</label>
-                      <div class="font-semibold">{{ position.distanceToStopPercent.toFixed(2) }}%</div>
+                      <div class="font-semibold">{{ selectedPosition.distanceToStopPercent.toFixed(2) }}%</div>
                     </div>
                   </div>
                 </template>
@@ -147,9 +147,9 @@
               <Card>
                 <template #title>Risk Warnings</template>
                 <template #content>
-                  <div v-if="position.riskCalculationWarnings.length > 0">
+                  <div v-if="selectedPosition.riskCalculationWarnings.length > 0">
                     <Message
-                      v-for="(warning, index) in position.riskCalculationWarnings"
+                      v-for="(warning, index) in selectedPosition.riskCalculationWarnings"
                       :key="index"
                       severity="warn"
                       :closable="false"
@@ -195,19 +195,12 @@
                 <div class="col-12 md:col-6">
                   <div class="field-grid">
                     <div class="field">
-                      <label>ATR (20-day)</label>
-                      <div class="font-semibold">{{ formatCurrency(atrData.atr20Day, position.currency) }}</div>
+                      <label>ATR</label>
+                      <div class="font-semibold">{{ formatCurrency(atrData.atr, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
-                      <label>Volatility Score</label>
-                      <div class="font-semibold">{{ atrData.volatilityScore.toFixed(1) }}</div>
-                    </div>
-                    <div class="field">
-                      <label>Confidence Level</label>
-                      <Tag
-                        :value="atrData.confidence"
-                        :severity="getConfidenceSeverity(atrData.confidence)"
-                      />
+                      <label>Volatility %</label>
+                      <div class="font-semibold">{{ atrData.volatilityPercent.toFixed(2) }}%</div>
                     </div>
                   </div>
                 </div>
@@ -215,31 +208,15 @@
                   <div class="field-grid">
                     <div class="field">
                       <label>Suggested Stop Loss</label>
-                      <div class="font-semibold text-red-600">{{ formatCurrency(atrData.suggestedStopLoss, position.currency) }}</div>
+                      <div class="font-semibold text-red-600">{{ formatCurrency(atrData.stopLoss, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
                       <label>Suggested Take Profit</label>
-                      <div class="font-semibold text-green-600">{{ formatCurrency(atrData.suggestedTakeProfit, position.currency) }}</div>
+                      <div class="font-semibold text-green-600">{{ formatCurrency(atrData.takeProfit, selectedPosition.currency) }}</div>
                     </div>
                     <div class="field">
                       <label>Risk/Reward Ratio</label>
                       <div class="font-semibold">{{ atrData.riskRewardRatio.toFixed(2) }}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12" v-if="atrData.warnings.length > 0">
-                  <div class="field">
-                    <label>ATR Warnings</label>
-                    <div>
-                      <Message
-                        v-for="(warning, index) in atrData.warnings"
-                        :key="index"
-                        severity="warn"
-                        :closable="false"
-                        class="mb-2"
-                      >
-                        {{ warning }}
-                      </Message>
                     </div>
                   </div>
                 </div>
@@ -250,9 +227,9 @@
 
         <!-- Protective Orders -->
         <TabPanel header="Protective Orders">
-          <div v-if="position.protectiveOrders">
+          <div v-if="selectedPosition.protectiveOrders">
             <div class="grid">
-              <div class="col-12 md:col-6" v-if="position.protectiveOrders.stopLoss">
+              <div class="col-12 md:col-6" v-if="selectedPosition.protectiveOrders.stopLoss">
                 <Card>
                   <template #title>
                     <div class="flex align-items-center gap-2">
@@ -264,37 +241,37 @@
                     <div class="field-grid">
                       <div class="field">
                         <label>Order ID</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.stopLoss.orderId }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.stopLoss.orderId }}</div>
                       </div>
                       <div class="field">
                         <label>Price</label>
-                        <div class="font-semibold text-red-600">{{ formatCurrency(position.protectiveOrders.stopLoss.price, position.currency) }}</div>
+                        <div class="font-semibold text-red-600">{{ formatCurrency(selectedPosition.protectiveOrders.stopLoss.price, selectedPosition.currency) }}</div>
                       </div>
                       <div class="field">
                         <label>Quantity</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.stopLoss.quantity.toLocaleString() }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.stopLoss.quantity.toLocaleString() }}</div>
                       </div>
                       <div class="field">
                         <label>Order Type</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.stopLoss.orderType }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.stopLoss.orderType }}</div>
                       </div>
                       <div class="field">
                         <label>Status</label>
-                        <Tag :value="position.protectiveOrders.stopLoss.status" />
+                        <Tag :value="selectedPosition.protectiveOrders.stopLoss.status" />
                       </div>
                       <div class="field">
                         <label>Time in Force</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.stopLoss.timeInForce }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.stopLoss.timeInForce }}</div>
                       </div>
-                      <div class="field" v-if="position.protectiveOrders.stopLoss.alignmentPercent">
+                      <div class="field" v-if="selectedPosition.protectiveOrders.stopLoss.alignmentPercent">
                         <label>Alignment %</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.stopLoss.alignmentPercent.toFixed(2) }}%</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.stopLoss.alignmentPercent.toFixed(2) }}%</div>
                       </div>
                       <div class="field">
                         <label>Is Aligned</label>
                         <Tag
-                          :value="position.protectiveOrders.stopLoss.isAligned ? 'YES' : 'NO'"
-                          :severity="position.protectiveOrders.stopLoss.isAligned ? 'success' : 'danger'"
+                          :value="selectedPosition.protectiveOrders.stopLoss.isAligned ? 'YES' : 'NO'"
+                          :severity="selectedPosition.protectiveOrders.stopLoss.isAligned ? 'success' : 'danger'"
                         />
                       </div>
                     </div>
@@ -302,7 +279,7 @@
                 </Card>
               </div>
 
-              <div class="col-12 md:col-6" v-if="position.protectiveOrders.takeProfit">
+              <div class="col-12 md:col-6" v-if="selectedPosition.protectiveOrders.takeProfit">
                 <Card>
                   <template #title>
                     <div class="flex align-items-center gap-2">
@@ -314,37 +291,37 @@
                     <div class="field-grid">
                       <div class="field">
                         <label>Order ID</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.takeProfit.orderId }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.takeProfit.orderId }}</div>
                       </div>
                       <div class="field">
                         <label>Price</label>
-                        <div class="font-semibold text-green-600">{{ formatCurrency(position.protectiveOrders.takeProfit.price, position.currency) }}</div>
+                        <div class="font-semibold text-green-600">{{ formatCurrency(selectedPosition.protectiveOrders.takeProfit.price, selectedPosition.currency) }}</div>
                       </div>
                       <div class="field">
                         <label>Quantity</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.takeProfit.quantity.toLocaleString() }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.takeProfit.quantity.toLocaleString() }}</div>
                       </div>
                       <div class="field">
                         <label>Order Type</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.takeProfit.orderType }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.takeProfit.orderType }}</div>
                       </div>
                       <div class="field">
                         <label>Status</label>
-                        <Tag :value="position.protectiveOrders.takeProfit.status" />
+                        <Tag :value="selectedPosition.protectiveOrders.takeProfit.status" />
                       </div>
                       <div class="field">
                         <label>Time in Force</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.takeProfit.timeInForce }}</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.takeProfit.timeInForce }}</div>
                       </div>
-                      <div class="field" v-if="position.protectiveOrders.takeProfit.alignmentPercent">
+                      <div class="field" v-if="selectedPosition.protectiveOrders.takeProfit.alignmentPercent">
                         <label>Alignment %</label>
-                        <div class="font-semibold">{{ position.protectiveOrders.takeProfit.alignmentPercent.toFixed(2) }}%</div>
+                        <div class="font-semibold">{{ selectedPosition.protectiveOrders.takeProfit.alignmentPercent.toFixed(2) }}%</div>
                       </div>
                       <div class="field">
                         <label>Is Aligned</label>
                         <Tag
-                          :value="position.protectiveOrders.takeProfit.isAligned ? 'YES' : 'NO'"
-                          :severity="position.protectiveOrders.takeProfit.isAligned ? 'success' : 'danger'"
+                          :value="selectedPosition.protectiveOrders.takeProfit.isAligned ? 'YES' : 'NO'"
+                          :severity="selectedPosition.protectiveOrders.takeProfit.isAligned ? 'success' : 'danger'"
                         />
                       </div>
                     </div>
@@ -353,12 +330,12 @@
               </div>
             </div>
 
-            <div v-if="position.protectiveOrders.warnings.length > 0" class="mt-3">
+            <div v-if="selectedPosition.protectiveOrders.warnings.length > 0" class="mt-3">
               <Card>
                 <template #title>Protective Order Warnings</template>
                 <template #content>
                   <Message
-                    v-for="(warning, index) in position.protectiveOrders.warnings"
+                    v-for="(warning, index) in selectedPosition.protectiveOrders.warnings"
                     :key="index"
                     severity="warn"
                     :closable="false"
@@ -488,28 +465,26 @@ import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import ProgressSpinner from 'primevue/progressspinner'
 import Message from 'primevue/message'
-import { useATRCalculation, useRiskAnalysis } from '@/composables/usePortfolio'
+import { useATRCalculation, useRiskAnalysis, usePortfolio } from '@/composables/usePortfolio'
+import { useModalStore } from '@/stores/modal'
 import type { Position, PositionRisk } from '@/types/api'
 
-interface Props {
-  visible: boolean
-  position: Position | null
-}
+const modalStore = useModalStore()
 
-interface Emits {
-  (e: 'update:visible', value: boolean): void
-}
+// Get portfolio to find the selected position
+const { portfolio } = usePortfolio({
+  calculateRiskMetrics: true,
+  includeOrders: true
+})
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
-
-const visible = computed({
-  get: () => props.visible,
-  set: (value: boolean) => emit('update:visible', value)
+// Get the selected position from portfolio data
+const selectedPosition = computed(() => {
+  if (!modalStore.selectedPositionSymbol || !portfolio.value?.positions) return null
+  return portfolio.value.positions.find(p => p.symbol === modalStore.selectedPositionSymbol)
 })
 
 // ATR Query - use reactive symbol
-const atrSymbol = computed(() => props.position?.symbol || '')
+const atrSymbol = computed(() => selectedPosition.value?.symbol || '')
 const {
   data: atrData,
   isLoading: atrLoading,
@@ -529,9 +504,9 @@ const {
 
 // Find position-specific risk details
 const positionRiskDetails = computed(() => {
-  if (!props.position || !riskData.value) return null
+  if (!selectedPosition.value || !riskData.value) return null
   return riskData.value.positionRisks?.find(
-    (risk: PositionRisk) => risk.symbol === props.position?.symbol
+    (risk: PositionRisk) => risk.symbol === selectedPosition.value?.symbol
   )
 })
 

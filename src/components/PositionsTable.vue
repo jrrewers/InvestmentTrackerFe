@@ -149,14 +149,10 @@
   </Card>
 
   <!-- Position Detail Modal -->
-  <PositionDetailModal
-    v-model:visible="modalVisible"
-    :position="selectedPosition"
-  />
+  <PositionDetailModal />
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -164,6 +160,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import PositionDetailModal from './PositionDetailModal.vue'
+import { useModalStore } from '@/stores/modal'
 import type { Position } from '@/types/api'
 
 interface Props {
@@ -176,14 +173,12 @@ defineEmits<{
   refresh: []
 }>()
 
-// Modal state
-const modalVisible = ref(false)
-const selectedPosition = ref<Position | null>(null)
+const modalStore = useModalStore()
 
 // Row selection handler
 function onRowSelect(event: any) {
-  selectedPosition.value = event.data
-  modalVisible.value = true
+  const position = event.data as Position
+  modalStore.openPosition(position)
 }
 
 function formatCurrency(amount: number, currency = 'EUR'): string {

@@ -105,7 +105,8 @@
 
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
-import { watchEffect } from 'vue'
+import { watchEffect, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Message from 'primevue/message'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -116,9 +117,18 @@ import PortfolioSummary from '@/components/PortfolioSummary.vue'
 import RiskMetricsPanel from '@/components/RiskMetricsPanel.vue'
 import PositionsTable from '@/components/PositionsTable.vue'
 import { usePortfolio, useRiskAnalysis } from '@/composables/usePortfolio'
+import { useModalStore } from '@/stores/modal'
 import type { OpenOrder } from '@/types/api'
 
+// Props for route-based modal opening
+interface Props {
+  symbol?: string
+}
+const props = defineProps<Props>()
+
 const toast = useToast()
+const router = useRouter()
+const modalStore = useModalStore()
 
 const {
   portfolio,
@@ -148,6 +158,35 @@ watchEffect(() => {
       detail: getErrorMessage(error.value),
       life: 5000
     })
+  }
+})
+
+// Handle route-based modal opening
+watch([() => props.symbol, portfolio], ([symbol, portfolioData]) => {
+  if (symbol && portfolioData?.positions) {
+    const position = portfolioData.positions.find(p => p.symbol === symbol)
+    if (position) {
+      modalStore.openPositionModal(symbol)
+    } else {
+      // Position not found, redirect to dashboard
+      router.push('/')
+    }
+  } else if (!symbol) {
+    // No symbol in route, close modal if it's a position modal
+    if (modalStore.isPositionModalVisible) {
+      modalStore.closeModal()
+    }
+  }
+}, { immediate: true })
+
+// Watch for modal close to update URL
+watch(() => modalStore.isPositionModalVisible, (isVisible) => {
+  if (!isVisible && props.symbol) {
+    // Position modal closed, navigate back to dashboard
+    router.push('/')
+  } else if (isVisible && modalStore.selectedPositionSymbol && !props.symbol) {
+    // Position modal opened, update URL
+    router.push(`/position/${modalStore.selectedPositionSymbol}`)
   }
 })
 

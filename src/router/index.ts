@@ -10,6 +10,12 @@ const router = createRouter({
       component: Dashboard
     },
     {
+      path: '/position/:symbol',
+      name: 'position-detail',
+      component: Dashboard,
+      props: true
+    },
+    {
       path: '/risk-analysis',
       name: 'risk-analysis',
       component: () => import('../views/RiskAnalysis.vue')
