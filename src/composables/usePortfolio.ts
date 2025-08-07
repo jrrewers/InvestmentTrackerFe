@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { ref, computed, isRef, type Ref } from 'vue'
 import { portfolioService } from '@/services/portfolioService'
 import type { PortfolioRequest } from '@/types/api'
 
@@ -37,13 +38,15 @@ export function useRiskAnalysis() {
   })
 }
 
-export function useATRCalculation(symbol: string, period = 20) {
+export function useATRCalculation(symbol: string | Ref<string>, period = 20) {
+  const symbolRef = isRef(symbol) ? symbol : ref(symbol)
+  
   return useQuery({
-    queryKey: ['atr', symbol, period],
-    queryFn: () => portfolioService.getATRCalculation(symbol, period),
+    queryKey: ['atr', symbolRef, period],
+    queryFn: () => portfolioService.getATRCalculation(symbolRef.value, period),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes cache
-    enabled: !!symbol, // Only run query if symbol is provided
+    enabled: computed(() => !!symbolRef.value), // Only run query if symbol is provided
   })
 }
 

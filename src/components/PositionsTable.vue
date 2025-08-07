@@ -23,6 +23,10 @@
         responsiveLayout="scroll"
         showGridlines
         stripedRows
+        :rowHover="true"
+        selectionMode="single"
+        @rowSelect="onRowSelect"
+        class="clickable-rows"
       >
         <Column field="symbol" header="Symbol" sortable>
           <template #body="{ data }">
@@ -143,15 +147,23 @@
       </DataTable>
     </template>
   </Card>
+
+  <!-- Position Detail Modal -->
+  <PositionDetailModal
+    v-model:visible="modalVisible"
+    :position="selectedPosition"
+  />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
+import PositionDetailModal from './PositionDetailModal.vue'
 import type { Position } from '@/types/api'
 
 interface Props {
@@ -163,6 +175,16 @@ defineProps<Props>()
 defineEmits<{
   refresh: []
 }>()
+
+// Modal state
+const modalVisible = ref(false)
+const selectedPosition = ref<Position | null>(null)
+
+// Row selection handler
+function onRowSelect(event: any) {
+  selectedPosition.value = event.data
+  modalVisible.value = true
+}
 
 function formatCurrency(amount: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('en-US', {
@@ -205,5 +227,14 @@ function getConfidenceSeverity(confidence: string): string {
 
 :deep(.risk-low .p-progressbar-value) {
   background-color: #38a169;
+}
+
+:deep(.clickable-rows .p-datatable-tbody > tr) {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+:deep(.clickable-rows .p-datatable-tbody > tr:hover) {
+  background-color: var(--surface-hover) !important;
 }
 </style>

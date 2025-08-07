@@ -20,7 +20,8 @@ Vue 3 + PrimeVue + TanStack Query frontend for Investment Tracker. Features real
 - **Dashboard**: `src/views/Dashboard.vue:1-150` - Main portfolio page with error handling
 - **Risk Analysis**: `src/views/RiskAnalysis.vue:1-120` - Detailed risk metrics page
 - **Portfolio Summary**: `src/components/PortfolioSummary.vue:1-80` - Summary cards (value, P&L, positions, risk)
-- **Positions Table**: `src/components/PositionsTable.vue:1-200` - DataTable with risk scores, protective orders
+- **Positions Table**: `src/components/PositionsTable.vue:1-240` - DataTable with risk scores, protective orders, clickable rows
+- **Position Detail Modal**: `src/components/PositionDetailModal.vue:1-600` - Comprehensive position details modal with multi-endpoint data
 - **Risk Metrics**: `src/components/RiskMetricsPanel.vue:1-100` - Portfolio risk visualization
 - **Connection Status**: `src/components/ConnectionStatus.vue:1-50` - IBKR health indicator
 
@@ -51,6 +52,16 @@ export function usePortfolio(params = {}) {
     refetchInterval: 60 * 1000,
   })
 }
+
+// Reactive symbol support for ATR calculations
+export function useATRCalculation(symbol: string | Ref<string>, period = 20) {
+  const symbolRef = isRef(symbol) ? symbol : ref(symbol)
+  return useQuery({
+    queryKey: ['atr', symbolRef, period],
+    queryFn: () => portfolioService.getATRCalculation(symbolRef.value, period),
+    enabled: computed(() => !!symbolRef.value),
+  })
+}
 ```
 
 **Benefits**:
@@ -62,10 +73,13 @@ export function usePortfolio(params = {}) {
 ## PrimeVue Component Usage
 
 ### Out-of-Box Components (No Custom Styling)
-- **DataTable**: Sortable, filterable positions table with pagination
+- **DataTable**: Sortable, filterable positions table with pagination, row selection
+- **Dialog**: Modal containers for detailed views
+- **TabView/TabPanel**: Organized content sections in modals
 - **Card**: Summary panels and section containers
 - **Tag**: Risk confidence levels, exchange codes, order status
 - **ProgressBar**: Risk score visualization with color-coded classes
+- **ProgressSpinner**: Loading states for async operations
 - **Toast**: Error notifications with retry actions
 - **Skeleton**: Loading states for data fetching
 - **Button**: Refresh actions with loading states
@@ -117,7 +131,17 @@ watchEffect(() => {
 - **Protective Orders**: Stop loss/take profit tags with price tooltips
 - **Confidence Indicators**: HIGH/MEDIUM/LOW tags for risk calculation confidence
 - **Currency Formatting**: Intl.NumberFormat for proper currency display
+- **Clickable Rows**: Row selection with hover effects and cursor pointer
+- **Detail Modal**: Comprehensive position details on row click
 - **Responsive Design**: PrimeFlex grid system
+
+### Position Detail Modal Features
+- **Multi-Tab Layout**: Position Info, Risk Analysis, Protective Orders, Portfolio Context
+- **Multi-Endpoint Integration**: Combines `/api/portfolio`, `/api/portfolio/risk-analysis`, `/api/portfolio/{symbol}/atr`
+- **Independent Loading States**: Each data source loads independently with spinners
+- **Reactive Symbol Queries**: ATR calculations update when position changes
+- **Error Boundaries**: Graceful error handling with retry options
+- **Responsive Modal**: Adaptive sizing for desktop/tablet/mobile
 
 ## Development Patterns
 
@@ -200,6 +224,34 @@ interface RiskAnalysisResponse {
 }
 ```
 **Files**: `src/types/api.ts` matches actual backend responses
+
+### Position Detail Modal Implementation (COMPLETED)
+**Implementation**: Multi-endpoint data aggregation modal with reactive queries
+**Pattern**: Use reactive computed refs for dynamic symbol-based queries
+```typescript
+// Reactive ATR query pattern
+const atrSymbol = computed(() => props.position?.symbol || '')
+const atrQuery = useATRCalculation(atrSymbol) // Composable handles Ref<string>
+
+// Enhanced useATRCalculation with Ref support
+export function useATRCalculation(symbol: string | Ref<string>, period = 20) {
+  const symbolRef = isRef(symbol) ? symbol : ref(symbol)
+  return useQuery({
+    enabled: computed(() => !!symbolRef.value),
+    queryFn: () => portfolioService.getATRCalculation(symbolRef.value, period)
+  })
+}
+```
+**Files**: `src/components/PositionDetailModal.vue`, `src/components/PositionsTable.vue`, `src/composables/usePortfolio.ts`
+
+**Features Implemented**:
+- Row-click modal trigger with selection state
+- Multi-tab organization (4 tabs: Position Info, Risk Analysis, Protective Orders, Portfolio Context)
+- Independent loading states for each API endpoint
+- Comprehensive error handling with retry options
+- Responsive dialog with mobile breakpoints
+- Reactive symbol queries that update when position changes
+- Full TypeScript type safety across all data flows
 
 ### Currency Default and Layout Improvements (COMPLETED)
 **Changes**: 
