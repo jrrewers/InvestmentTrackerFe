@@ -135,13 +135,13 @@ watchEffect(() => {
 - **Detail Modal**: Comprehensive position details on row click
 - **Responsive Design**: PrimeFlex grid system
 
-### Position Detail Modal Features
-- **Multi-Tab Layout**: Position Info, Risk Analysis, Protective Orders, Portfolio Context
-- **Multi-Endpoint Integration**: Combines `/api/portfolio`, `/api/portfolio/risk-analysis`, `/api/portfolio/{symbol}/atr`
-- **Independent Loading States**: Each data source loads independently with spinners
-- **Reactive Symbol Queries**: ATR calculations update when position changes
-- **Error Boundaries**: Graceful error handling with retry options
-- **Responsive Modal**: Adaptive sizing for desktop/tablet/mobile
+### Position Detail Modal - Space-Efficient Design
+- **Inline Field Layout**: `label: value` on same line, grid-based responsive columns
+- **Compact Modal**: 60vw width (max 900px), reduced from 80vw/1200px
+- **Simplified Structure**: No nested Cards, just divs with 0.75rem padding
+- **Merged Tabs**: Position & P&L combined (3 tabs instead of 4)
+- **Multi-Endpoint Integration**: Combines portfolio, risk-analysis, ATR endpoints
+- **Reactive Queries**: ATR calculations update when position changes
 
 ## Development Patterns
 
@@ -225,33 +225,37 @@ interface RiskAnalysisResponse {
 ```
 **Files**: `src/types/api.ts` matches actual backend responses
 
-### Position Detail Modal Implementation (COMPLETED)
-**Implementation**: Multi-endpoint data aggregation modal with reactive queries
-**Pattern**: Use reactive computed refs for dynamic symbol-based queries
-```typescript
-// Reactive ATR query pattern
-const atrSymbol = computed(() => props.position?.symbol || '')
-const atrQuery = useATRCalculation(atrSymbol) // Composable handles Ref<string>
+### v-model with Computed Properties (FIXED)
+**Problem**: PrimeVue Dialog v-model:visible binding fails with read-only computed properties
+**Error**: "trap returned falsish for property 'isPositionModalVisible'" when closing modal
+**Fix**: Replace v-model with :visible and @update:visible
+```vue
+// Before (broken)
+<Dialog v-model:visible="modalStore.isPositionModalVisible">
 
-// Enhanced useATRCalculation with Ref support
-export function useATRCalculation(symbol: string | Ref<string>, period = 20) {
-  const symbolRef = isRef(symbol) ? symbol : ref(symbol)
-  return useQuery({
-    enabled: computed(() => !!symbolRef.value),
-    queryFn: () => portfolioService.getATRCalculation(symbolRef.value, period)
-  })
+// After (fixed)
+<Dialog :visible="modalStore.isPositionModalVisible" @update:visible="handleVisibleChange">
+const handleVisibleChange = (value: boolean) => {
+  if (!value) modalStore.closeModal()
 }
 ```
-**Files**: `src/components/PositionDetailModal.vue`, `src/components/PositionsTable.vue`, `src/composables/usePortfolio.ts`
+**Files**: `src/components/PositionDetailModal.vue:3-4,476-480`
 
-**Features Implemented**:
-- Row-click modal trigger with selection state
-- Multi-tab organization (4 tabs: Position Info, Risk Analysis, Protective Orders, Portfolio Context)
-- Independent loading states for each API endpoint
-- Comprehensive error handling with retry options
-- Responsive dialog with mobile breakpoints
-- Reactive symbol queries that update when position changes
-- Full TypeScript type safety across all data flows
+### Modal Space Optimization Pattern (OPTIMIZED)
+**CSS Grid for Inline Fields**: Efficient space usage with horizontal layout
+```css
+.field-grid-inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem 1.5rem; /* Tight vertical, comfortable horizontal */
+}
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+```
+**Files**: `src/components/PositionDetailModal.vue:557-590`
 
 ### Currency Default and Layout Improvements (COMPLETED)
 **Changes**: 
